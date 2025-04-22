@@ -1,24 +1,28 @@
-use std::io::{self, Read};
-use c4_rust::{Lexer, Parser, VM, Token};
+use std::io::{self, Read};                     // read input from the user
+use c4_rust::{Lexer, Parser, VM, Token};       // bring in the compiler parts from the crate
 
 fn main() {
-    // Read input C code from stdin
+    //read input C code from the terminal/file
     let mut source = String::new();
-    io::stdin().read_to_string(&mut source).unwrap();
+    io::stdin().read_to_string(&mut source).unwrap(); // Read entire input into a string
 
-    // Lexing
-    let mut lexer = Lexer::new(&source);
-    let mut tokens = Vec::new();
+    //convert the code into tokens using lexer
+    let mut lexer = Lexer::new(&source);       
+    let mut tokens = Vec::new();               // stores all the tokens
+
+    // read until eof
     loop {
-        let tok = lexer.next_token();
-        if let Token::Eof = tok {
+        let tok = lexer.next_token();          // Get the next token
+        if let Token::Eof = tok {              // If it's the end, stop
             break;
         }
-        tokens.push(tok);
+        tokens.push(tok);                      // else save the token
     }
 
-    // Parsing and running
+    //turn tokens into an AST using the parser
     let mut parser = Parser::new(tokens);
-    let ast = parser.parse_return();
-    VM::run(ast);
+    let ast = parser.parse_return();           // Only supports parsing return statements now
+
+    //run the AST using our vm
+    VM::run(ast);                              //prints result
 }
