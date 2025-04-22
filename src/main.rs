@@ -1,5 +1,5 @@
 use std::io::{self, Read};
-use c4::{Lexer, Parser, VM, Token};
+use c4_rust::{Lexer, Parser, VM, Token};
 
 fn main() {
     // Read input C code from stdin
