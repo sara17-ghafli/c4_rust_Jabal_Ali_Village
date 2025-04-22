@@ -44,5 +44,5 @@ cargo doc --open
 Each token includes line and column information, enabling better error messages in the future. This tracking improves debugging and syntax error reporting compared to the original C4 compiler.
 
 ## Team Members
-- Sara Alghafli – Lexer and initial parser setup, parser integration, tests, project integration
+- Sara Alghafli 100060342– Lexer and initial parser setup, parser integration, tests, project integration
 - Asma Alhumairi – Virtual Machine implementation, error tracking
