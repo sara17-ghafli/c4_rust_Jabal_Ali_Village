@@ -1,4 +1,4 @@
-use c4::{Lexer, Token, Position};
+use c4_rust::c4::{Lexer, Token, Position};
 
 //were numbers tokenized correctly?
 #[test]
