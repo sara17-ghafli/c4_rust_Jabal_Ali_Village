@@ -11,12 +11,24 @@ This project is a Rust-based reimplementation of the C4 compiler, originally wri
 ## Getting Started
 
 ### Build
+```bash
+cargo build
+```
 
 ### Run
+```bash
+cargo run < source.c
+```
 
 ### Test
+```bash
+cargo test
+```
 
 ### Documentation
+```bash
+cargo doc --open
+```
 
 ## Project Structure
 - src/c4.rs: Main source file (lexer, parser, VM)
