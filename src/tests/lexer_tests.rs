@@ -1,4 +1,4 @@
-use c4::*; // Make sure c4.rs is exposed in lib.rs or main.rs
+use c4::{Lexer, Token};
 
 #[test]
 fn test_lex_number() {
