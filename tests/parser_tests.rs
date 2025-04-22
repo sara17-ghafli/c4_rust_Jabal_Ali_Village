@@ -1,4 +1,4 @@
-use c4::{Lexer, Parser, Token, ASTNode, VM};
+use c4_rust::c4::{Lexer, Parser, Token, ASTNode, VM};
 
 //tests if 'return 42;' is parsed and executed correctly
 #[test]
