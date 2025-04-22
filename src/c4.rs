@@ -143,24 +143,26 @@ impl Parser {
     }
 
     pub fn parse_expression(&mut self) -> ASTNode {
-        match self.peek() {
-            Token::Number(n, _) => {
-                self.advance();
-                ASTNode::Number(*n)
-            }
-            Token::Identifier(name, _) => {
-                self.advance();
-                if let Token::Symbol('=', _) = self.peek() {
-                    self.advance();
-                    let expr = self.parse_expression();
-                    ASTNode::Assignment(name.clone(), Box::new(expr))
-                } else {
-                    ASTNode::Identifier(name.clone())
-                }
-            }
-            _ => panic!("Unexpected token in expression: {:?}", self.peek()),
+    match self.peek() {
+        Token::Number(n, _) => {
+            let n = *n;
+            self.advance();
+            ASTNode::Number(n)
         }
+        Token::Identifier(name, _) => {
+            let name = name.clone();
+            self.advance();
+            if let Token::Symbol('=', _) = self.peek() {
+                self.advance();
+                let expr = self.parse_expression();
+                ASTNode::Assignment(name, Box::new(expr))
+            } else {
+                ASTNode::Identifier(name)
+            }
+        }
+        _ => panic!("Unexpected token in expression: {:?}", self.peek()),
     }
+}
 
     pub fn parse_return(&mut self) -> ASTNode {
         if let Token::Keyword(k, _) = self.peek() {
