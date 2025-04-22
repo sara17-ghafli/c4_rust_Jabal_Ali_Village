@@ -11,23 +11,21 @@ This project is a Rust-based reimplementation of the C4 compiler, originally wri
 ## Getting Started
 
 ### Build
-```bash
-cargo build
-## Run
-cargo run < source.c
-## Test
-cargo test
-##Documentation
-cargo doc --open
-Project Structure
 
-src/c4.rs: Main source file (lexer, parser, VM)
-tests/: Unit tests for components
-c4_rust_comparison.pdf: Comparison report between C and Rust versions
-Bonus Feature (Optional)
+### Run
 
+### Test
+
+### Documentation
+
+## Project Structure
+- src/c4.rs: Main source file (lexer, parser, VM)
+- tests/: Unit tests for components
+- c4_rust_comparison.pdf: Comparison report between C and Rust versions
+
+## Bonus Feature (Optional)
 TBD: To be updated if a bonus feature is implemented.
-Team Members
 
-Sara alghafli (Lexer and initial parser setup)
-Asma Alhumairi (Parser, VM, and testing)
+## Team Members
+- Sara Alghafli (Lexer and initial parser setup)
+- Asma Alhumairi (Parser, VM, and testing)
