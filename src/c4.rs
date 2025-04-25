@@ -1,14 +1,14 @@
 use std::iter::Peekable;
 use std::str::Chars;
 
-/// Position info (bonus feature)
+/// Keeps track of where we are in the input (line and column)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Position {
     pub line: usize,
     pub column: usize,
 }
 
-/// Token types
+/// Different types of tokens we find
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Number(i32, Position),
@@ -18,7 +18,7 @@ pub enum Token {
     Eof,
 }
 
-/// Lexer
+/// Lexer to break input into tokens
 pub struct Lexer<'a> {
     input: Peekable<Chars<'a>>,
     current_line: usize,
@@ -26,6 +26,7 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
+    /// Creates a new Lexer
     pub fn new(source: &'a str) -> Self {
         Lexer {
             input: source.chars().peekable(),
@@ -34,6 +35,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// Gets the next token
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
 
@@ -60,6 +62,7 @@ impl<'a> Lexer<'a> {
         Token::Symbol(ch, pos)
     }
 
+    /// Lex a number like 123
     fn lex_number(&mut self, pos: Position) -> Token {
         let mut number = 0;
         while let Some(&ch) = self.input.peek() {
@@ -74,6 +77,7 @@ impl<'a> Lexer<'a> {
         Token::Number(number, pos)
     }
 
+    /// Lex an identifier like "x" or keyword like "return"
     fn lex_identifier_or_keyword(&mut self, pos: Position) -> Token {
         let mut ident = String::new();
         while let Some(&ch) = self.input.peek() {
@@ -92,6 +96,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// Skip spaces, tabs, and newlines
     fn skip_whitespace(&mut self) {
         while let Some(&ch) = self.input.peek() {
             if ch == '\n' {
@@ -108,7 +113,7 @@ impl<'a> Lexer<'a> {
     }
 }
 
-/// AST
+/// AST nodes to represent the code
 #[derive(Debug, PartialEq)]
 pub enum ASTNode {
     Number(i32),
@@ -122,25 +127,29 @@ pub enum ASTNode {
     Return(Box<ASTNode>),
 }
 
-/// Parser
+/// Parser to build the AST
 pub struct Parser {
     tokens: Vec<Token>,
     pos: usize,
 }
 
 impl Parser {
+    /// Create a new parser
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, pos: 0 }
     }
 
+    /// See the current token
     fn peek(&self) -> &Token {
         self.tokens.get(self.pos).unwrap_or(&Token::Eof)
     }
 
+    /// Move to next token
     fn advance(&mut self) {
         self.pos += 1;
     }
 
+    /// Expect a specific symbol
     fn expect_symbol(&mut self, ch: char) {
         match self.peek() {
             Token::Symbol(c, _) if *c == ch => self.advance(),
@@ -148,6 +157,7 @@ impl Parser {
         }
     }
 
+    /// Parse an expression (7 + 3)
     pub fn parse_expression(&mut self) -> ASTNode {
         self.parse_term()
     }
@@ -218,6 +228,7 @@ impl Parser {
         node
     }
 
+    /// Parse a return statement
     pub fn parse_return(&mut self) -> ASTNode {
         if let Token::Keyword(k, _) = self.peek() {
             if k == "return" {
@@ -231,19 +242,21 @@ impl Parser {
     }
 }
 
-/// Virtual Machine
+/// VM to evaluate the AST
 pub struct VM;
 
 impl VM {
+    /// Runs the whole program
     pub fn run(ast: ASTNode) {
         let result = VM::eval(ast);
         println!("Returned: {}", result);
     }
 
+    /// Evaluate an AST node
     pub fn eval(node: ASTNode) -> i32 {
         match node {
             ASTNode::Number(n) => n,
-            ASTNode::Identifier(_) => 0, // not yet storing values
+            ASTNode::Identifier(_) => 0, // variables not stored yet
             ASTNode::Assignment(_, val) => VM::eval(*val),
             ASTNode::BinaryOp { op, left, right } => {
                 let l = VM::eval(*left);
