@@ -1,5 +1,6 @@
-use c4_rust_team_jabal_ali_village::c4::{Lexer, Parser, Token, ASTNode, VM};
+use c4_rust_team_jabal_ali_village::c4::{Lexer, Parser, Token, VM};
 
+//to test if return 7 + 3 is parsed and evaluated correctly
 #[test]
 fn test_return_addition() {
     let mut lexer = Lexer::new("return 7 + 3;");
