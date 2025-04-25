@@ -1,32 +1,31 @@
-use std::str::Chars;
 use std::iter::Peekable;
+use std::str::Chars;
 
-/// This keeps track of where each token is in the text for error reporting
+/// Position info (bonus feature)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Position {
     pub line: usize,
     pub column: usize,
 }
 
-///These are the types of tokens our compiler understands which are the value and position output for lexer
+/// Token types
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
-    Number(i32, Position),         // Numbers like 42
-    Identifier(String, Position), // Variable names like x, y
-    Keyword(String, Position),    // Reserved words like return
-    Symbol(char, Position),       // Characters like +, =, ;
-    Eof,                          // End of file
+    Number(i32, Position),
+    Identifier(String, Position),
+    Keyword(String, Position),
+    Symbol(char, Position),
+    Eof,
 }
 
-/// The Lexer reads the source text one char at a time
+/// Lexer
 pub struct Lexer<'a> {
-    input: Peekable<Chars<'a>>,   // What we're reading
+    input: Peekable<Chars<'a>>,
     current_line: usize,
     current_column: usize,
 }
 
 impl<'a> Lexer<'a> {
-    /// Create a new lexer from source code
     pub fn new(source: &'a str) -> Self {
         Lexer {
             input: source.chars().peekable(),
@@ -34,20 +33,20 @@ impl<'a> Lexer<'a> {
             current_column: 0,
         }
     }
-    /// Read the next token ie word,number, or symbol
+
     pub fn next_token(&mut self) -> Token {
-        self.skip_whitespace(); // Skip spaces and newlines
+        self.skip_whitespace();
 
         let pos = Position {
             line: self.current_line,
             column: self.current_column,
         };
-         // Check whats coming next
+
         let ch = match self.input.peek() {
             Some(&c) => c,
             None => return Token::Eof,
         };
-        // Decide what kind of token it is
+
         if ch.is_ascii_digit() {
             return self.lex_number(pos);
         }
@@ -55,12 +54,12 @@ impl<'a> Lexer<'a> {
         if ch.is_ascii_alphabetic() || ch == '_' {
             return self.lex_identifier_or_keyword(pos);
         }
-        // determine if its just a symbl like = or ;
+
         self.input.next();
         self.current_column += 1;
         Token::Symbol(ch, pos)
     }
-    /// Handle numbers like our test 42
+
     fn lex_number(&mut self, pos: Position) -> Token {
         let mut number = 0;
         while let Some(&ch) = self.input.peek() {
@@ -74,7 +73,7 @@ impl<'a> Lexer<'a> {
         }
         Token::Number(number, pos)
     }
-    /// Handle keywords like `return` or variables like `x`
+
     fn lex_identifier_or_keyword(&mut self, pos: Position) -> Token {
         let mut ident = String::new();
         while let Some(&ch) = self.input.peek() {
@@ -88,11 +87,11 @@ impl<'a> Lexer<'a> {
         }
 
         match ident.as_str() {
-            "int" | "return" | "if" | "else" | "while" | "for" => Token::Keyword(ident, pos),
+            "int" | "return" => Token::Keyword(ident, pos),
             _ => Token::Identifier(ident, pos),
         }
     }
-    /// Ignores the spaces and line breaks
+
     fn skip_whitespace(&mut self) {
         while let Some(&ch) = self.input.peek() {
             if ch == '\n' {
@@ -109,70 +108,122 @@ impl<'a> Lexer<'a> {
     }
 }
 
-// ----------------------------
-// IMPLEMENTING PARSER + AST
-// ----------------------------
-
-/// These are the shapes of code we want to recognize
-#[derive(Debug)]
+/// AST
+#[derive(Debug, PartialEq)]
 pub enum ASTNode {
-    Number(i32),                              // A number
-    Identifier(String),                       // A variable name
-    BinaryOp {                                // (Not used yet)
+    Number(i32),
+    Identifier(String),
+    Assignment(String, Box<ASTNode>),
+    BinaryOp {
         op: char,
         left: Box<ASTNode>,
         right: Box<ASTNode>,
     },
-    Assignment(String, Box<ASTNode>),         // x = 42
-    Return(Box<ASTNode>),                     // return 42
+    Return(Box<ASTNode>),
 }
 
+/// Parser
 pub struct Parser {
-    tokens: Vec<Token>,  // Tokens from the lexer
-    pos: usize,          // Where we are in the list
+    tokens: Vec<Token>,
+    pos: usize,
 }
 
 impl Parser {
-    /// Make a new parser from tokens
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, pos: 0 }
     }
-    /// Look at the current token
+
     fn peek(&self) -> &Token {
         self.tokens.get(self.pos).unwrap_or(&Token::Eof)
     }
-    /// Move to the next token
+
     fn advance(&mut self) {
         self.pos += 1;
     }
-    /// Parse a number, identifier, or asssignment
-    pub fn parse_expression(&mut self) -> ASTNode {
-    match self.peek() {
-        Token::Number(n, _) => {
-            let n = *n;
-            self.advance();
-            ASTNode::Number(n)
+
+    fn expect_symbol(&mut self, ch: char) {
+        match self.peek() {
+            Token::Symbol(c, _) if *c == ch => self.advance(),
+            _ => panic!("Expected symbol: '{}'", ch),
         }
-        Token::Identifier(name, _) => {
-            let name = name.clone();
-            self.advance();
-            if let Token::Symbol('=', _) = self.peek() {
+    }
+
+    pub fn parse_expression(&mut self) -> ASTNode {
+        self.parse_term()
+    }
+
+    fn parse_term(&mut self) -> ASTNode {
+        let mut node = self.parse_factor();
+
+        while let Token::Symbol(op, _) = self.peek() {
+            if *op == '+' || *op == '-' {
+                let op = *op;
                 self.advance();
-                let expr = self.parse_expression();
-                ASTNode::Assignment(name, Box::new(expr))
+                let right = self.parse_factor();
+                node = ASTNode::BinaryOp {
+                    op,
+                    left: Box::new(node),
+                    right: Box::new(right),
+                };
             } else {
-                ASTNode::Identifier(name)
+                break;
             }
         }
-        _ => panic!("Unexpected token in expression: {:?}", self.peek()),
+
+        node
     }
-}
-    /// Parse return statements, in our cas the `return 42;`
+
+    fn parse_factor(&mut self) -> ASTNode {
+        let mut node = match self.peek() {
+            Token::Number(n, _) => {
+                let n = *n;
+                self.advance();
+                ASTNode::Number(n)
+            }
+            Token::Identifier(name, _) => {
+                let name = name.clone();
+                self.advance();
+                if let Token::Symbol('=', _) = self.peek() {
+                    self.advance();
+                    let expr = self.parse_expression();
+                    ASTNode::Assignment(name, Box::new(expr))
+                } else {
+                    ASTNode::Identifier(name)
+                }
+            }
+            Token::Symbol('(', _) => {
+                self.advance();
+                let expr = self.parse_expression();
+                self.expect_symbol(')');
+                expr
+            }
+            _ => panic!("Unexpected token"),
+        };
+
+        while let Token::Symbol(op, _) = self.peek() {
+            if *op == '*' || *op == '/' {
+                let op = *op;
+                self.advance();
+                let right = self.parse_factor();
+                node = ASTNode::BinaryOp {
+                    op,
+                    left: Box::new(node),
+                    right: Box::new(right),
+                };
+            } else {
+                break;
+            }
+        }
+
+        node
+    }
+
     pub fn parse_return(&mut self) -> ASTNode {
         if let Token::Keyword(k, _) = self.peek() {
             if k == "return" {
                 self.advance();
                 let expr = self.parse_expression();
+                self.expect_symbol(';');
                 return ASTNode::Return(Box::new(expr));
             }
         }
@@ -180,30 +231,31 @@ impl Parser {
     }
 }
 
-// ----------------------------
-// IMPLEMENTING VIRTUAL MACHINE
-// ----------------------------
-
+/// Virtual Machine
 pub struct VM;
 
 impl VM {
-    /// Run the parsed code (AST)
     pub fn run(ast: ASTNode) {
-        match ast {
-            ASTNode::Return(expr) => {
-                let value = VM::eval(*expr);
-                println!("Returned: {}", value); // Print the result
-            }
-            _ => println!("Unsupported AST"),
-        }
+        let result = VM::eval(ast);
+        println!("Returned: {}", result);
     }
-    /// Evaluate (finding the answer) the result of an expression
-    fn eval(node: ASTNode) -> i32 {
+
+    pub fn eval(node: ASTNode) -> i32 {
         match node {
             ASTNode::Number(n) => n,
-            ASTNode::BinaryOp { .. } => 0, // Not used yet
+            ASTNode::Identifier(_) => 0, // not yet storing values
             ASTNode::Assignment(_, val) => VM::eval(*val),
-            ASTNode::Identifier(_) => 0,   // We don't store variables yet
+            ASTNode::BinaryOp { op, left, right } => {
+                let l = VM::eval(*left);
+                let r = VM::eval(*right);
+                match op {
+                    '+' => l + r,
+                    '-' => l - r,
+                    '*' => l * r,
+                    '/' => l / r,
+                    _ => panic!("Unsupported operator"),
+                }
+            }
             ASTNode::Return(expr) => VM::eval(*expr),
         }
     }
