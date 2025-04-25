@@ -1,1 +1,1 @@
-return 42;
+return 7 + 3;
