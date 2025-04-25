@@ -4,7 +4,7 @@ This project is a Rust-based reimplementation of the original C4 compiler.
 It compiles a subset of C code including expressions, assignments, and return statements.
 
 ## Features
-- Lexer with tokenizing and line/column tracking (bonus feature ✅)
+- Lexer with tokenizing and line/column tracking (bonus feature)
 - Parser for expressions, assignments, and return statements
 - Virtual machine that evaluates expressions
 - Unit tested with 70%+ coverage
