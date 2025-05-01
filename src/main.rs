@@ -2,11 +2,9 @@ use std::io::{self, Read};
 use c4_rust_team_jabal_ali_village::{Lexer, Parser, Token, VM};
 
 fn main() {
-    // Read C source code from input
     let mut source = String::new();
     io::stdin().read_to_string(&mut source).unwrap();
 
-    // Tokenize
     let mut lexer = Lexer::new(&source);
     let mut tokens = vec![];
     loop {
@@ -15,8 +13,9 @@ fn main() {
         tokens.push(t);
     }
 
-    // Parse and run the code
     let mut parser = Parser::new(tokens);
-    let ast = parser.parse_return();
-    VM::run(ast);
+    match parser.parse_return() {
+        Ok(ast) => VM::run(ast),
+        Err(e) => eprintln!("Syntax Error: {}", e),
+    }
 }
