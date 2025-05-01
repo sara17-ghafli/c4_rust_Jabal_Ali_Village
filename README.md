@@ -26,7 +26,7 @@ cargo run < examples/source.c
 ```bash
 cargo run < examples/assign_and_return.c
 ```
-- Examples that show errors in code and error handeling
+- Examples that show errors in code and test error handeling
 ```bash
 cargo run < examples/bad_if_statement.c
 ```
