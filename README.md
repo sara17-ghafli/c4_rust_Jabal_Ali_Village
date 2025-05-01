@@ -42,8 +42,11 @@ cargo doc --open
 - `c4_rust_comparison.pdf`: Comparison report between Rust and original C4
 
 ## Bonus Feature
-each token includes line and column information, enabling better error messages in the future. This tracking improves debugging and syntax error reporting compared to the original C4 compiler.
+We added two improvements not present in the original C4:
 
+1. Each token includes line and column tracking for better error handling.
+2. Instead of crashing on invalid input, the compiler shows clean syntax error messages like:
+   `Error at line 1, column 10: Expected ';'`
 ## Supported Subset
 return 1 + 2;
 x = 5;
