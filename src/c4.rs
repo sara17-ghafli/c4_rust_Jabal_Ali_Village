@@ -26,7 +26,6 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    /// Creates a new Lexer
     pub fn new(source: &'a str) -> Self {
         Lexer {
             input: source.chars().peekable(),
@@ -35,7 +34,6 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Gets the next token
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
 
@@ -62,7 +60,6 @@ impl<'a> Lexer<'a> {
         Token::Symbol(ch, pos)
     }
 
-    /// Lex a number like 123
     fn lex_number(&mut self, pos: Position) -> Token {
         let mut number = 0;
         while let Some(&ch) = self.input.peek() {
@@ -77,7 +74,6 @@ impl<'a> Lexer<'a> {
         Token::Number(number, pos)
     }
 
-    /// Lex an identifier like "x" or keyword like "return"
     fn lex_identifier_or_keyword(&mut self, pos: Position) -> Token {
         let mut ident = String::new();
         while let Some(&ch) = self.input.peek() {
@@ -96,7 +92,6 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Skip spaces, tabs, and newlines
     fn skip_whitespace(&mut self) {
         while let Some(&ch) = self.input.peek() {
             if ch == '\n' {
@@ -134,42 +129,45 @@ pub struct Parser {
 }
 
 impl Parser {
-    /// Create a new parser
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, pos: 0 }
     }
 
-    /// See the current token
     fn peek(&self) -> &Token {
         self.tokens.get(self.pos).unwrap_or(&Token::Eof)
     }
 
-    /// Move to next token
     fn advance(&mut self) {
         self.pos += 1;
     }
 
-    /// Expect a specific symbol
-    fn expect_symbol(&mut self, ch: char) {
+    fn expect_symbol(&mut self, ch: char) -> Result<(), String> {
         match self.peek() {
-            Token::Symbol(c, _) if *c == ch => self.advance(),
-            _ => panic!("Expected symbol: '{}'", ch),
+            Token::Symbol(c, pos) if *c == ch => {
+                self.advance();
+                Ok(())
+            }
+            Token::Symbol(found, pos) => Err(format!(
+                "Error at line {}, column {}: Expected '{}', found '{}'",
+                pos.line, pos.column, ch, found
+            )),
+            Token::Eof => Err("Unexpected end of input.".to_string()),
+            _ => Err("Expected symbol but found something else.".to_string()),
         }
     }
 
-    /// Parse an expression (7 + 3)
-    pub fn parse_expression(&mut self) -> ASTNode {
+    pub fn parse_expression(&mut self) -> Result<ASTNode, String> {
         self.parse_term()
     }
 
-    fn parse_term(&mut self) -> ASTNode {
-        let mut node = self.parse_factor();
+    fn parse_term(&mut self) -> Result<ASTNode, String> {
+        let mut node = self.parse_factor()?;
 
         while let Token::Symbol(op, _) = self.peek() {
             if *op == '+' || *op == '-' {
                 let op = *op;
                 self.advance();
-                let right = self.parse_factor();
+                let right = self.parse_factor()?;
                 node = ASTNode::BinaryOp {
                     op,
                     left: Box::new(node),
@@ -180,22 +178,22 @@ impl Parser {
             }
         }
 
-        node
+        Ok(node)
     }
 
-    fn parse_factor(&mut self) -> ASTNode {
-        let mut node = match self.peek() {
+    fn parse_factor(&mut self) -> Result<ASTNode, String> {
+        let current = self.peek().clone();
+        let mut node = match current {
             Token::Number(n, _) => {
-                let n = *n;
                 self.advance();
                 ASTNode::Number(n)
             }
-            Token::Identifier(name, _) => {
+            Token::Identifier(ref name, _) => {
                 let name = name.clone();
                 self.advance();
                 if let Token::Symbol('=', _) = self.peek() {
                     self.advance();
-                    let expr = self.parse_expression();
+                    let expr = self.parse_expression()?;
                     ASTNode::Assignment(name, Box::new(expr))
                 } else {
                     ASTNode::Identifier(name)
@@ -203,18 +201,18 @@ impl Parser {
             }
             Token::Symbol('(', _) => {
                 self.advance();
-                let expr = self.parse_expression();
-                self.expect_symbol(')');
+                let expr = self.parse_expression()?;
+                self.expect_symbol(')')?;
                 expr
             }
-            _ => panic!("Unexpected token"),
+            _ => return Err(format!("Unexpected token: {:?}", current)),
         };
 
         while let Token::Symbol(op, _) = self.peek() {
             if *op == '*' || *op == '/' {
                 let op = *op;
                 self.advance();
-                let right = self.parse_factor();
+                let right = self.parse_factor()?;
                 node = ASTNode::BinaryOp {
                     op,
                     left: Box::new(node),
@@ -225,20 +223,19 @@ impl Parser {
             }
         }
 
-        node
+        Ok(node)
     }
 
-    /// Parse a return statement
-    pub fn parse_return(&mut self) -> ASTNode {
-        if let Token::Keyword(k, _) = self.peek() {
+    pub fn parse_return(&mut self) -> Result<ASTNode, String> {
+        if let Token::Keyword(k, pos) = self.peek() {
             if k == "return" {
                 self.advance();
-                let expr = self.parse_expression();
-                self.expect_symbol(';');
-                return ASTNode::Return(Box::new(expr));
+                let expr = self.parse_expression()?;
+                self.expect_symbol(';')?;
+                return Ok(ASTNode::Return(Box::new(expr)));
             }
         }
-        panic!("Expected 'return'");
+        Err(format!("Expected 'return' keyword, found: {:?}", self.peek()))
     }
 }
 
@@ -246,17 +243,15 @@ impl Parser {
 pub struct VM;
 
 impl VM {
-    /// Runs the whole program
     pub fn run(ast: ASTNode) {
         let result = VM::eval(ast);
         println!("Returned: {}", result);
     }
 
-    /// Evaluate an AST node
     pub fn eval(node: ASTNode) -> i32 {
         match node {
             ASTNode::Number(n) => n,
-            ASTNode::Identifier(_) => 0, // variables not stored yet
+            ASTNode::Identifier(_) => 0,
             ASTNode::Assignment(_, val) => VM::eval(*val),
             ASTNode::BinaryOp { op, left, right } => {
                 let l = VM::eval(*left);
