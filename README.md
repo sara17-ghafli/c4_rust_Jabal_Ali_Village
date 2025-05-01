@@ -18,9 +18,23 @@ It compiles a subset of C code including expressions, assignments, and return st
 cargo build
 ```
 
-### Run with example C file
+### Run with example C files
+- Examples that give the correct output
 ```bash
 cargo run < examples/source.c
+```
+```bash
+cargo run < examples/assign_and_return.c
+```
+- Examples that show errors in code and error handeling
+```bash
+cargo run < examples/bad_if_statement.c
+```
+```bash
+cargo run < examples/bad_missing_semicolon.c
+```
+```bash
+cargo run < examples/bad_symbol.c
 ```
 
 ### Test
